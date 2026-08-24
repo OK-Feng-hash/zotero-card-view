@@ -21,7 +21,12 @@ const script = [
   "    for name in files:",
   "      file_path=os.path.join(base,name)",
   "      archive_path=os.path.relpath(file_path,src).replace(os.sep,'/')",
-  "      z.write(file_path,archive_path)"
+  "      info=zipfile.ZipInfo(archive_path,(2020,1,1,0,0,0))",
+  "      info.compress_type=zipfile.ZIP_DEFLATED",
+  "      info.create_system=3",
+  "      info.external_attr=0o100644 << 16",
+  "      with open(file_path,'rb') as source:",
+  "        z.writestr(info,source.read())"
 ].join("\n");
 execFileSync(python, ["-c", script, addon, output], { stdio: "inherit" });
 

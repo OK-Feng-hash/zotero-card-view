@@ -5,7 +5,7 @@
         {
           "version": "0.2.0",
           "update_link": "https://github.com/OK-Feng-hash/zotero-card-view/releases/download/v0.2.0/zotero-card-view-0.2.0.xpi",
-          "update_hash": "sha256:843030b6026ed038e7baeae1fdc1af8fab7ce4e3aa4c8c25966d73a691ef9428",
+          "update_hash": "sha256:cc71a62a112fd1536ee84b769f3ac23b9cf8c615dddf44d418452ce13f8b5976",
           "applications": {
             "zotero": {
               "strict_min_version": "6.999",
