@@ -26,7 +26,9 @@ const script = [
   "      info.create_system=3",
   "      info.external_attr=0o100644 << 16",
   "      with open(file_path,'rb') as source:",
-  "        z.writestr(info,source.read())"
+  "        data=source.read()",
+  "      data=data.replace(b'\\r\\n',b'\\n').replace(b'\\r',b'\\n').rstrip(b'\\n')+b'\\n'",
+  "      z.writestr(info,data)"
 ].join("\n");
 execFileSync(python, ["-c", script, addon, output], { stdio: "inherit" });
 
