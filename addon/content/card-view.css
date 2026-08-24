@@ -1,0 +1,320 @@
+:root {
+  --card-view-bg: var(--material-sidepane, Canvas);
+  --card-view-card-bg: var(--material-background, Canvas);
+  --card-view-text: var(--fill-primary, CanvasText);
+  --card-view-muted: var(--fill-secondary, GrayText);
+  --card-view-border: color-mix(in srgb, var(--card-view-text) 15%, transparent);
+  --card-view-accent: var(--accent-blue, #2b6cb0);
+}
+
+#zotero-card-view-toggle.card-view-active {
+  background-color: color-mix(in srgb, var(--card-view-accent) 18%, transparent);
+}
+
+#zotero-card-view-toggle > .toolbarbutton-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.zotero-card-view-container {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  width: 100%;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  color: var(--card-view-text);
+  background: var(--card-view-bg);
+  outline: none;
+  color-scheme: light dark;
+}
+
+#zotero-items-pane.card-view-host-active {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#zotero-items-pane.card-view-host-active > #zotero-items-tree {
+  display: none !important;
+}
+
+#zotero-items-pane.card-view-host-active > .zotero-card-view-container {
+  display: block !important;
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+
+.card-view-sort-bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  box-sizing: border-box;
+  min-height: 46px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--card-view-border);
+  background: color-mix(in srgb, var(--card-view-bg) 94%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.card-view-sort-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--card-view-muted);
+  font-size: 13px;
+}
+
+.card-view-sort-select,
+.card-view-sort-direction {
+  box-sizing: border-box;
+  min-height: 30px;
+  border: 1px solid var(--card-view-border);
+  border-radius: 6px;
+  color: var(--card-view-text);
+  background: var(--card-view-card-bg);
+  font: inherit;
+}
+
+.card-view-sort-select {
+  min-width: 136px;
+  padding: 3px 28px 3px 9px;
+}
+
+.card-view-sort-direction {
+  min-width: 72px;
+  padding: 3px 9px;
+  cursor: pointer;
+}
+
+.card-view-sort-direction:hover {
+  border-color: var(--card-view-accent);
+}
+
+.zotero-card-view-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  align-items: start;
+  gap: 12px;
+  padding: 14px;
+}
+
+.zotero-card-view-card {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--card-view-border);
+  border-radius: 10px;
+  background: var(--card-view-card-bg);
+  box-shadow: 0 1px 3px color-mix(in srgb, black 10%, transparent);
+  cursor: default;
+  user-select: none;
+}
+
+.zotero-card-view-card:hover {
+  border-color: color-mix(in srgb, var(--card-view-accent) 45%, var(--card-view-border));
+}
+
+.zotero-card-view-card.selected {
+  border-color: var(--card-view-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--card-view-accent) 22%, transparent);
+}
+
+.card-view-title {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: var(--card-view-text);
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.zotero-card-view-card.expanded .card-view-title {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+}
+
+.card-view-meta,
+.card-view-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.card-view-badge {
+  display: inline-block;
+  max-width: 100%;
+  padding: 2px 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  color: var(--card-view-muted);
+  background: color-mix(in srgb, var(--card-view-text) 7%, transparent);
+  font-size: 11px;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-view-badge.journal {
+  max-width: 100%;
+  color: var(--card-view-text);
+}
+
+.card-view-badge.impact {
+  color: #176b4d;
+  background: color-mix(in srgb, #39a878 16%, transparent);
+}
+
+.card-view-badge.partition {
+  color: #9a4d00;
+  background: color-mix(in srgb, #e58a20 17%, transparent);
+}
+
+.card-view-badge.tag {
+  color: var(--card-view-accent);
+  background: color-mix(in srgb, var(--card-view-accent) 11%, transparent);
+}
+
+.card-view-rating {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  white-space: nowrap;
+}
+
+.card-view-rating-star {
+  display: inline-block;
+  line-height: 1;
+}
+
+.card-view-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--card-view-border);
+}
+
+.card-view-counts {
+  color: var(--card-view-muted);
+  font-size: 11px;
+}
+
+.card-view-expand,
+.card-view-link {
+  border: 0;
+  color: var(--card-view-accent);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+
+.card-view-expand {
+  padding: 3px 6px;
+  font-size: 12px;
+}
+
+.card-view-details {
+  display: none;
+  margin-top: 12px;
+  padding-top: 2px;
+  user-select: text;
+}
+
+.zotero-card-view-card.expanded .card-view-details {
+  display: block;
+}
+
+.card-view-detail-section {
+  margin-top: 12px;
+}
+
+.card-view-detail-section h4 {
+  margin: 0 0 4px;
+  color: var(--card-view-text);
+  font-size: 12px;
+}
+
+.card-view-detail-section p {
+  margin: 0;
+  color: var(--card-view-muted);
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.card-view-abstract-text.collapsed {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+}
+
+.card-view-abstract-text.expanded {
+  display: block;
+  overflow: visible;
+}
+
+.card-view-abstract-toggle {
+  margin-top: 5px;
+  padding: 1px 6px;
+  border: 0;
+  border-radius: 5px;
+  color: var(--card-view-accent);
+  background: color-mix(in srgb, var(--card-view-accent) 10%, transparent);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.card-view-abstract-toggle:hover {
+  background: color-mix(in srgb, var(--card-view-accent) 17%, transparent);
+}
+
+.card-view-links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.card-view-links h4 {
+  width: 100%;
+}
+
+.card-view-link {
+  max-width: 100%;
+  padding: 2px 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-view-empty {
+  grid-column: 1 / -1;
+  padding: 48px 20px;
+  color: var(--card-view-muted);
+  text-align: center;
+}
+
+@media (prefers-color-scheme: dark) {
+  .card-view-badge.impact { color: #75d5af; }
+  .card-view-badge.partition { color: #f1b66f; }
+}
+

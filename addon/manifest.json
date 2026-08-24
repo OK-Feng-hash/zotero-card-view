@@ -1,0 +1,20 @@
+{
+  "manifest_version": 2,
+  "name": "Zotero Card View",
+  "version": "0.2.0",
+  "description": "Adds a native literature card view to the Zotero 9 library pane.",
+  "author": "OK-Feng-hash",
+  "icons": {
+    "48": "content/icons/card-view.svg",
+    "96": "content/icons/card-view.svg"
+  },
+  "applications": {
+    "zotero": {
+      "id": "zotero-card-view@ok-feng-hash.github.io",
+      "update_url": "https://raw.githubusercontent.com/OK-Feng-hash/zotero-card-view/main/updates.json",
+      "strict_min_version": "6.999",
+      "strict_max_version": "9.0.*"
+    }
+  }
+}
+
