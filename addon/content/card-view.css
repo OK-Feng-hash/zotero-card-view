@@ -74,7 +74,8 @@
 }
 
 .card-view-sort-select,
-.card-view-sort-direction {
+.card-view-sort-direction,
+.card-view-sort-fields-button {
   box-sizing: border-box;
   min-height: 30px;
   border: 1px solid var(--card-view-border);
@@ -95,8 +96,70 @@
   cursor: pointer;
 }
 
-.card-view-sort-direction:hover {
+.card-view-sort-fields-button {
+  min-width: 76px;
+  padding: 3px 9px;
+  cursor: pointer;
+}
+
+.card-view-sort-fields-button::after {
+  margin-left: 5px;
+  content: "▾";
+}
+
+.card-view-sort-direction:hover,
+.card-view-sort-fields-button:hover,
+.card-view-sort-fields-button[aria-expanded="true"] {
   border-color: var(--card-view-accent);
+}
+
+.card-view-sort-field-picker {
+  position: relative;
+}
+
+.card-view-sort-fields-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  box-sizing: border-box;
+  width: max-content;
+  min-width: 178px;
+  max-height: min(65vh, 430px);
+  padding: 6px;
+  overflow-y: auto;
+  border: 1px solid var(--card-view-border);
+  border-radius: 8px;
+  background: var(--card-view-card-bg);
+  box-shadow: 0 6px 20px color-mix(in srgb, black 18%, transparent);
+}
+
+.card-view-sort-fields-panel[hidden] {
+  display: none;
+}
+
+.card-view-sort-fields-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 29px;
+  padding: 2px 9px;
+  border-radius: 5px;
+  color: var(--card-view-text);
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.card-view-sort-fields-item:hover {
+  background: color-mix(in srgb, var(--card-view-accent) 12%, transparent);
+}
+
+.card-view-sort-fields-checkbox {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--card-view-accent);
 }
 
 .zotero-card-view-grid {
@@ -129,6 +192,8 @@
 }
 
 .card-view-title {
+  position: relative;
+  isolation: isolate;
   display: -webkit-box;
   margin: 0;
   overflow: hidden;
@@ -138,6 +203,27 @@
   line-height: 1.45;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
+}
+
+.card-view-title-text {
+  position: relative;
+  z-index: 1;
+}
+
+.card-view-reading-progress {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  overflow: hidden;
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.card-view-reading-progress-segment {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
 }
 
 .zotero-card-view-card.expanded .card-view-title {
@@ -317,4 +403,3 @@
   .card-view-badge.impact { color: #75d5af; }
   .card-view-badge.partition { color: #f1b66f; }
 }
-

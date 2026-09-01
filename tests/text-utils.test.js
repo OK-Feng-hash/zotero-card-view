@@ -22,4 +22,3 @@ test("parseExtraField supports English and Chinese separators", () => {
 test("parseExtraField does not accept partial field names", () => {
   assert.equal(utils.parseExtraField("JIF5: 9.1", ["JIF"]), "");
 });
-

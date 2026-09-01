@@ -17,16 +17,19 @@
     "zoterostyle.function.ratingColumn.enable",
     "zoterostyle.ratingColumn.selectedStar",
     "zoterostyle.ratingColumn.unselectedStar",
-    "zoterostyle.ratingColumn.padding"
+    "zoterostyle.ratingColumn.padding",
+    "zoterostyle.function.titleColumn.enable",
+    "zoterostyle.titleColumn.color",
+    "zoterostyle.titleColumn.opacity"
   ]);
 
   function createSnapshot(win) {
     return Object.freeze({
       metrics: root.CardViewMetricsAdapter.createConfig(win),
-      rating: root.CardViewRatingAdapter.createConfig(win)
+      rating: root.CardViewRatingAdapter.createConfig(win),
+      readingProgress: root.CardViewReadingProgressAdapter.createConfig(win)
     });
   }
 
   root.CardViewSettings = { STYLE_PREF_KEYS, createSnapshot };
 })(typeof _globalThis !== "undefined" ? _globalThis : (typeof globalThis !== "undefined" ? globalThis : this));
-

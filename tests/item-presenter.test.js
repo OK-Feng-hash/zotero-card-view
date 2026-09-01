@@ -75,4 +75,3 @@ test("presenter does not reuse Zotero tags as independent keywords", () => {
   assert.equal(model.keywords, "");
   assert.deepEqual(Array.from(model.tags), ["吸附"]);
 });
-

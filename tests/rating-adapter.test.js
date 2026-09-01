@@ -42,4 +42,3 @@ test("supports legacy uncolored star tags and rejects colored ones", () => {
   assert.equal(context.CardViewRatingAdapter.getRating(uncoloredWin, item).value, 3);
   assert.equal(context.CardViewRatingAdapter.getRating(coloredWin, item), null);
 });
-

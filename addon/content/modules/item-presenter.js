@@ -33,6 +33,18 @@
     } catch (_) { return []; }
   }
 
+  function itemTypeName(win, item) {
+    try { return cleanText(win.Zotero.ItemTypes.getLocalizedString(item.itemTypeID)); }
+    catch (_) {
+      try { return cleanText(win.Zotero.ItemTypes.getName(item.itemTypeID)); }
+      catch (_) { return ""; }
+    }
+  }
+
+  function itemDate(item, property) {
+    return firstNonEmpty(cleanText(item?.[property]), safeField(item, property));
+  }
+
   function getTags(win, item) {
     try {
       return item.getTags()
@@ -72,18 +84,35 @@
 
   function presentSummary(win, item, settings = {}) {
     const tags = getTags(win, item);
+    const date = firstNonEmpty(safeField(item, "date"), safeField(item, "year"));
+    const journal = firstNonEmpty(
+      safeField(item, "publicationTitle"),
+      safeField(item, "proceedingsTitle"),
+      safeField(item, "publisher")
+    );
+    const firstCreator = safeField(item, "firstCreator");
     return {
       id: item.id,
       key: item.key,
       item,
       title: firstNonEmpty(safeField(item, "title"), "无标题条目"),
-      date: firstNonEmpty(safeField(item, "date"), safeField(item, "year")),
-      journal: firstNonEmpty(safeField(item, "publicationTitle"), safeField(item, "proceedingsTitle"), safeField(item, "publisher")),
+      date,
+      journal,
       rating: root.CardViewRatingAdapter.getRating(win, item, settings.rating),
       tags,
       noteCount: childIDs(item, "getNotes").length,
       attachmentCount: childIDs(item, "getAttachments").length,
-      metrics: root.CardViewMetricsAdapter.getMetrics(win, item, settings.metrics)
+      metrics: root.CardViewMetricsAdapter.getMetrics(win, item, settings.metrics),
+      sortValues: Object.freeze({
+        creator: firstCreator,
+        itemType: itemTypeName(win, item),
+        year: firstNonEmpty(safeField(item, "year"), (date.match(/\b\d{4}\b/) || [""])[0]),
+        publication: journal,
+        publisher: safeField(item, "publisher"),
+        dateAdded: itemDate(item, "dateAdded"),
+        dateModified: itemDate(item, "dateModified"),
+        tags: [...tags].sort((left, right) => left.localeCompare(right, undefined, { sensitivity: "base" })).join("；")
+      })
     };
   }
 
@@ -117,4 +146,3 @@
 
   root.CardViewItemPresenter = { present, presentSummary, presentDetails, safeField, creatorName };
 })(typeof _globalThis !== "undefined" ? _globalThis : (typeof globalThis !== "undefined" ? globalThis : this));
-

@@ -39,4 +39,3 @@
     }
   };
 })(typeof _globalThis !== "undefined" ? _globalThis : (typeof globalThis !== "undefined" ? globalThis : this));
-

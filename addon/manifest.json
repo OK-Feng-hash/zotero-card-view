@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Zotero Card View",
-  "version": "0.2.0",
+  "version": "0.3.4",
   "description": "Adds a native literature card view to the Zotero 9 library pane.",
   "author": "OK-Feng-hash",
   "icons": {
@@ -17,4 +17,3 @@
     }
   }
 }
-

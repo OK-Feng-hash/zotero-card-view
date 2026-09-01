@@ -104,4 +104,3 @@ test("changing the configured field list changes the mirrored badges", () => {
   });
   assert.deepEqual(Array.from(badges, badge => badge.field), ["sciUpTop"]);
 });
-

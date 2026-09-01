@@ -33,4 +33,3 @@ const script = [
 execFileSync(python, ["-c", script, addon, output], { stdio: "inherit" });
 
 console.log(output);
-

@@ -43,7 +43,7 @@
       this.doc = document;
     }
 
-    createCard(model, details = null) {
+    createCard(model, details = null, readingProgress = null) {
       const card = html(this.doc, "article", "zotero-card-view-card");
       card.dataset.itemId = String(model.id);
       card.tabIndex = -1;
@@ -51,9 +51,10 @@
       card.setAttribute("aria-selected", "false");
       card._cardViewModel = model;
       card._cardViewDetails = details;
+      card._cardViewReadingProgressSignature = readingProgress?.signature || "";
 
       const header = html(this.doc, "div", "card-view-card-header");
-      const title = html(this.doc, "h3", "card-view-title", model.title);
+      const title = this.createTitle(model.title, readingProgress);
       title.title = model.title;
       header.append(title);
 
@@ -89,6 +90,24 @@
         card.append(this.createDetails(details));
       }
       return card;
+    }
+
+    createTitle(text, readingProgress) {
+      const title = html(this.doc, "h3", "card-view-title");
+      if (readingProgress) {
+        const progress = html(this.doc, "span", "card-view-reading-progress");
+        progress.setAttribute("aria-hidden", "true");
+        progress.style.opacity = String(readingProgress.opacity);
+        for (const intensity of readingProgress.intensities) {
+          const segment = html(this.doc, "span", "card-view-reading-progress-segment");
+          segment.style.backgroundColor = readingProgress.color;
+          segment.style.opacity = String(intensity);
+          progress.append(segment);
+        }
+        title.append(progress);
+      }
+      title.append(html(this.doc, "span", "card-view-title-text", text));
+      return title;
     }
 
     badge(text, kind) {
@@ -205,4 +224,3 @@
   root.CardViewDetailUtils = { creatorDetailLabel, normalizedTerms, hasDistinctKeywords };
   root.CardViewCardRenderer = CardRenderer;
 })(typeof _globalThis !== "undefined" ? _globalThis : (typeof globalThis !== "undefined" ? globalThis : this));
-

@@ -15,6 +15,9 @@
       this.container = null;
       this.sortSelect = null;
       this.sortDirectionButton = null;
+      this.sortFieldsPicker = null;
+      this.sortFieldsButton = null;
+      this.sortFieldsPanel = null;
       this.grid = null;
       this.button = null;
       this.menuItem = null;
@@ -26,9 +29,17 @@
       this.selectedIDs = new Set();
       this.anchorID = null;
       this.renderTimer = null;
+      this.restorePositionTimer = null;
+      this.visibleMetricsTimer = null;
       this.renderRevision = 0;
+      this.restorePositionRevision = 0;
+      this.renderPending = false;
       this.active = false;
       this.disposed = false;
+      this.libraryTabActive = true;
+      this.positionRestorePending = false;
+      this.suppressPositionCapture = false;
+      this.viewPosition = { top: 0, anchorID: null, anchorOffset: 0 };
       this.notifierID = null;
       this.stylePrefObserverIDs = [];
       this.originalItemSelected = null;
@@ -37,9 +48,23 @@
       this.originalTreeDisplayPriority = "";
       this.sortField = "date";
       this.sortDirection = "desc";
+      this.enabledSortFields = [...root.CardViewSortFields.DEFAULT_ENABLED];
+      this.documentClickListener = event => {
+        if (!this.sortFieldsPanel || this.sortFieldsPanel.hidden) return;
+        if (!this.sortFieldsPicker?.contains(event.target)) this.closeSortFieldsPanel();
+      };
       this.refreshListener = () => this.scheduleRender();
+      this.scrollListener = () => {
+        if (!this.suppressPositionCapture) this.captureViewPosition();
+        this.queueVisibleMetricsSync();
+      };
       this.renderer = new root.CardViewCardRenderer(this.doc);
       this.modelStore = new root.CardViewModelStore(win);
+      this.metricsSync = new root.CardViewStyleMetricsSync(win, ids => {
+        if (this.disposed || !ids.length) return;
+        this.modelStore.invalidate(ids);
+        this.scheduleRender(0);
+      });
     }
 
     async init() {
@@ -54,15 +79,16 @@
       this.installStylesheet();
       this.createToolbarButton();
       this.createViewMenuItem();
+      root.CardViewPreferences.migrateLegacy(this.win, root.Services);
+      this.loadSortPreferences();
       this.createContainer();
       this.connectItemsView();
+      this.libraryTabActive = this.isLibraryTabSelected();
       this.registerObservers();
 
-      this.sortField = this.win.Zotero.Prefs.get("extensions.zotero.cardView.sortField", true) || "date";
-      this.sortDirection = this.win.Zotero.Prefs.get("extensions.zotero.cardView.sortDirection", true) || "desc";
       this.updateSortControls();
 
-      const enabled = this.win.Zotero.Prefs.get("extensions.zotero.cardView.enabled", true) === true;
+      const enabled = root.CardViewPreferences.get(this.win, "enabled", false) === true;
       await this.setActive(enabled, false);
     }
 
@@ -132,6 +158,18 @@
       this.setActive(!this.active).catch(error => this.logError(error));
     }
 
+    loadSortPreferences() {
+      this.enabledSortFields = root.CardViewSortFields.normalizeEnabled(
+        root.CardViewPreferences.get(this.win, "enabledSortFields", "")
+      );
+      const savedField = root.CardViewPreferences.get(this.win, "sortField", "date") || "date";
+      this.sortField = this.enabledSortFields.includes(savedField) ? savedField : this.enabledSortFields[0];
+      const savedDirection = root.CardViewPreferences.get(this.win, "sortDirection", "desc");
+      this.sortDirection = ["asc", "desc"].includes(savedDirection)
+        ? savedDirection
+        : root.CardViewSortFields.defaultDirection(this.sortField);
+    }
+
     createContainer() {
       this.doc.getElementById("zotero-card-view-container")?.remove();
       this.hostNode = this.treeNode.parentNode;
@@ -152,6 +190,7 @@
       container.addEventListener("click", event => this.handleAsync(this.onContainerClick(event)));
       container.addEventListener("dblclick", event => this.handleAsync(this.onContainerDoubleClick(event)));
       container.addEventListener("contextmenu", event => this.handleAsync(this.onContainerContextMenu(event)));
+      container.addEventListener("scroll", this.scrollListener, { passive: true });
       this.hostNode.append(container);
       this.container = container;
       this.grid = grid;
@@ -162,19 +201,9 @@
       const label = html(this.doc, "label", "card-view-sort-label", "排序");
       const select = html(this.doc, "select", "card-view-sort-select");
       select.setAttribute("aria-label", "卡片排序方式");
-      for (const [value, text] of [
-        ["date", "文献日期"],
-        ["title", "文献名"],
-        ["impactFactor", "期刊影响因子"],
-        ["rating", "评级"]
-      ]) {
-        const option = html(this.doc, "option", "", text);
-        option.value = value;
-        select.append(option);
-      }
       select.addEventListener("change", () => {
         this.sortField = select.value;
-        this.sortDirection = this.sortField === "title" ? "asc" : "desc";
+        this.sortDirection = root.CardViewSortFields.defaultDirection(this.sortField);
         this.persistSort();
         this.updateSortControls();
         this.scheduleRender(0);
@@ -189,15 +218,104 @@
         this.updateSortControls();
         this.scheduleRender(0);
       });
-      bar.append(label, direction);
+
+      const picker = html(this.doc, "div", "card-view-sort-field-picker");
+      const pickerButton = html(this.doc, "button", "card-view-sort-fields-button", "排序项目");
+      pickerButton.type = "button";
+      pickerButton.setAttribute("aria-label", "选择排序项目");
+      pickerButton.setAttribute("aria-haspopup", "menu");
+      pickerButton.setAttribute("aria-expanded", "false");
+      const panel = html(this.doc, "div", "card-view-sort-fields-panel");
+      panel.hidden = true;
+      panel.setAttribute("role", "menu");
+      panel.setAttribute("aria-label", "可用排序项目");
+      for (const field of root.CardViewSortFields.FIELDS) {
+        const item = html(this.doc, "label", "card-view-sort-fields-item");
+        const checkbox = html(this.doc, "input", "card-view-sort-fields-checkbox");
+        checkbox.type = "checkbox";
+        checkbox.value = field.id;
+        checkbox.checked = this.enabledSortFields.includes(field.id);
+        checkbox.setAttribute("role", "menuitemcheckbox");
+        checkbox.addEventListener("change", () => this.onSortFieldToggle(checkbox));
+        item.append(checkbox, html(this.doc, "span", "", field.label));
+        panel.append(item);
+      }
+      pickerButton.addEventListener("click", () => {
+        panel.hidden ? this.openSortFieldsPanel() : this.closeSortFieldsPanel();
+      });
+      panel.addEventListener("keydown", event => {
+        if (event.key !== "Escape") return;
+        event.preventDefault();
+        this.closeSortFieldsPanel();
+        pickerButton.focus();
+      });
+      picker.append(pickerButton, panel);
+
+      bar.append(label, direction, picker);
       this.sortSelect = select;
       this.sortDirectionButton = direction;
+      this.sortFieldsPicker = picker;
+      this.sortFieldsButton = pickerButton;
+      this.sortFieldsPanel = panel;
+      this.rebuildSortOptions();
+      this.doc.addEventListener("click", this.documentClickListener);
       return bar;
     }
 
+    openSortFieldsPanel() {
+      if (!this.sortFieldsPanel) return;
+      this.sortFieldsPanel.hidden = false;
+      this.sortFieldsButton?.setAttribute("aria-expanded", "true");
+    }
+
+    closeSortFieldsPanel() {
+      if (!this.sortFieldsPanel) return;
+      this.sortFieldsPanel.hidden = true;
+      this.sortFieldsButton?.setAttribute("aria-expanded", "false");
+    }
+
+    onSortFieldToggle(checkbox) {
+      const enabled = new Set(this.enabledSortFields);
+      checkbox.checked ? enabled.add(checkbox.value) : enabled.delete(checkbox.value);
+      if (!enabled.size) {
+        checkbox.checked = true;
+        return;
+      }
+      this.enabledSortFields = root.CardViewSortFields.FIELDS
+        .map(field => field.id)
+        .filter(field => enabled.has(field));
+      const fieldChanged = !this.enabledSortFields.includes(this.sortField);
+      if (fieldChanged) {
+        this.sortField = this.enabledSortFields[0];
+        this.sortDirection = root.CardViewSortFields.defaultDirection(this.sortField);
+      }
+      this.rebuildSortOptions();
+      this.persistSort();
+      this.updateSortControls();
+      if (fieldChanged) this.scheduleRender(0);
+    }
+
+    rebuildSortOptions() {
+      if (!this.sortSelect) return;
+      const fragment = this.doc.createDocumentFragment();
+      for (const field of root.CardViewSortFields.FIELDS) {
+        if (!this.enabledSortFields.includes(field.id)) continue;
+        const option = html(this.doc, "option", "", field.label);
+        option.value = field.id;
+        fragment.append(option);
+      }
+      this.sortSelect.replaceChildren(fragment);
+      this.sortSelect.value = this.sortField;
+    }
+
     persistSort() {
-      this.win.Zotero.Prefs.set("extensions.zotero.cardView.sortField", this.sortField);
-      this.win.Zotero.Prefs.set("extensions.zotero.cardView.sortDirection", this.sortDirection);
+      root.CardViewPreferences.set(this.win, "sortField", this.sortField);
+      root.CardViewPreferences.set(this.win, "sortDirection", this.sortDirection);
+      root.CardViewPreferences.set(
+        this.win,
+        "enabledSortFields",
+        root.CardViewSortFields.serializeEnabled(this.enabledSortFields)
+      );
     }
 
     updateSortControls() {
@@ -216,6 +334,7 @@
         this.treeNode.setAttribute("aria-hidden", "true");
         this.container?.style.setProperty("display", "block", "important");
       } else {
+        this.closeSortFieldsPanel();
         if (this.originalTreeDisplay) {
           this.treeNode.style.setProperty("display", this.originalTreeDisplay, this.originalTreeDisplayPriority);
         } else this.treeNode.style.removeProperty("display");
@@ -240,12 +359,16 @@
     registerObservers() {
       if (this.notifierID) return;
       this.notifierID = this.win.Zotero.Notifier.registerObserver({
-        notify: (_action, type, ids) => {
+        notify: (action, type, ids) => {
+          if (type === "tab") {
+            if (action === "select") this.onTabSelected(ids);
+            return;
+          }
           if (type === "item") this.modelStore.invalidate(ids);
           else this.modelStore.invalidateDetails();
           this.scheduleRender();
         }
-      }, ["item", "collection"], "zotero-card-view");
+      }, ["item", "collection", "tab"], "zotero-card-view");
       for (const key of root.CardViewSettings.STYLE_PREF_KEYS) {
         try {
           this.stylePrefObserverIDs.push(this.win.Zotero.Prefs.registerObserver(key, () => {
@@ -262,17 +385,19 @@
         this.active = false;
         this.updateActiveControls(false);
         this.applyViewLayout(false);
-        if (persist) this.win.Zotero.Prefs.set("extensions.zotero.cardView.enabled", false);
+        if (persist) root.CardViewPreferences.set(this.win, "enabled", false);
         throw new Error("Zotero item view did not become ready");
       }
       this.active = requested;
       this.updateActiveControls(this.active);
       this.applyViewLayout(this.active);
-      if (persist) this.win.Zotero.Prefs.set("extensions.zotero.cardView.enabled", this.active);
+      if (persist) root.CardViewPreferences.set(this.win, "enabled", this.active);
       if (this.active) {
         await this.render();
+        this.metricsSync.start();
+        this.queueVisibleMetricsSync(0);
         this.container.focus();
-      }
+      } else this.pauseMetricsSync();
     }
 
     updateActiveControls(active) {
@@ -283,18 +408,30 @@
 
     scheduleRender(delay = 80) {
       if (this.disposed) return;
+      this.renderPending = true;
       this.win.clearTimeout(this.renderTimer);
+      this.renderTimer = null;
+      if (!this.libraryTabActive) return;
       this.renderTimer = this.win.setTimeout(() => {
         this.renderTimer = null;
-        if (this.active) this.render().catch(error => this.logError(error));
+        if (this.active && this.libraryTabActive) {
+          this.renderPending = false;
+          this.render().catch(error => this.logError(error));
+        }
       }, delay);
     }
 
     async render() {
       if (!this.active || this.disposed) return;
+      if (!this.libraryTabActive) {
+        this.renderPending = true;
+        return;
+      }
+      this.renderPending = false;
       this.connectItemsView();
       const revision = ++this.renderRevision;
-      const scrollTop = this.container.scrollTop;
+      if (!this.positionRestorePending) this.captureViewPosition();
+      const viewPosition = { ...this.viewPosition };
       const visibleItems = (this.pane.getSortedItems?.() || []).filter(item => {
         try { return item?.isRegularItem?.() && !item.deleted; } catch (_) { return false; }
       });
@@ -321,12 +458,15 @@
         for (const model of orderedModels) {
           const expanded = this.expandedIDs.has(model.id);
           const details = expanded ? this.modelStore.getDetails(model.item) : null;
+          const readingProgress = this.modelStore.getReadingProgress(model.item);
+          const progressSignature = readingProgress?.signature || "";
           let card = this.cardByID.get(model.id);
           const reusable = card?._cardViewModel === model
             && card.classList.contains("expanded") === expanded
-            && (!expanded || card._cardViewDetails === details);
+            && (!expanded || card._cardViewDetails === details)
+            && card._cardViewReadingProgressSignature === progressSignature;
           if (!reusable) {
-            card = this.renderer.createCard(model, details);
+            card = this.renderer.createCard(model, details, readingProgress);
             createdCards++;
           }
           nextCards.set(model.id, card);
@@ -339,8 +479,100 @@
       }
       this.cardByID = nextCards;
       this.grid.replaceChildren(fragment);
-      this.container.scrollTop = scrollTop;
+      this.restoreViewPosition(viewPosition);
       this.syncSelection(true);
+      this.metricsSync.track(orderedModels);
+      this.queueVisibleMetricsSync(0);
+    }
+
+    isLibraryTabSelected(ids = []) {
+      try {
+        if (this.win.Zotero_Tabs?.selectedID) {
+          return this.win.Zotero_Tabs.selectedID === "zotero-pane";
+        }
+      } catch (_) {}
+      return Array.from(ids || []).includes("zotero-pane");
+    }
+
+    onTabSelected(ids) {
+      const librarySelected = this.isLibraryTabSelected(ids);
+      const returnedToLibrary = librarySelected && !this.libraryTabActive;
+      this.libraryTabActive = librarySelected;
+      if (!librarySelected) {
+        this.win.clearTimeout(this.renderTimer);
+        this.renderTimer = null;
+        this.pauseMetricsSync();
+        return;
+      }
+      if (!returnedToLibrary || !this.active) return;
+      this.metricsSync.start();
+      this.positionRestorePending = true;
+      if (this.renderPending) this.scheduleRender(0);
+      this.queueViewPositionRestore();
+      this.queueVisibleMetricsSync(0);
+    }
+
+    pauseMetricsSync() {
+      this.win.clearTimeout(this.visibleMetricsTimer);
+      this.visibleMetricsTimer = null;
+      this.metricsSync.pause();
+    }
+
+    queueVisibleMetricsSync(delay = 120) {
+      this.win.clearTimeout(this.visibleMetricsTimer);
+      this.visibleMetricsTimer = null;
+      if (!this.active || !this.libraryTabActive || this.disposed || !this.container) return;
+      this.visibleMetricsTimer = this.win.setTimeout(() => {
+        this.visibleMetricsTimer = null;
+        if (!this.active || !this.libraryTabActive || this.disposed) return;
+        const viewport = this.container.getBoundingClientRect();
+        const ids = [];
+        for (const [id, card] of this.cardByID) {
+          const rect = card.getBoundingClientRect();
+          if (rect.bottom > viewport.top && rect.top < viewport.bottom) ids.push(id);
+        }
+        this.metricsSync.prioritize(ids);
+        this.metricsSync.wake(0);
+      }, Math.max(0, Number(delay) || 0));
+    }
+
+    captureViewPosition(preferredID = null) {
+      if (!this.container || !this.grid) return this.viewPosition;
+      const preferredIDs = [preferredID, ...this.getSelectedIDs()]
+        .filter((id, index, values) => id !== null && id !== undefined && values.indexOf(id) === index);
+      this.viewPosition = root.CardViewViewPosition.capture(
+        this.container,
+        this.cardByID,
+        preferredIDs
+      );
+      return this.viewPosition;
+    }
+
+    restoreViewPosition(position = this.viewPosition) {
+      if (!this.container) return;
+      const revision = ++this.restorePositionRevision;
+      this.suppressPositionCapture = true;
+      root.CardViewViewPosition.restore(this.container, this.cardByID, position);
+      this.win.setTimeout(() => {
+        if (revision === this.restorePositionRevision) this.suppressPositionCapture = false;
+      }, 0);
+    }
+
+    queueViewPositionRestore() {
+      this.win.clearTimeout(this.restorePositionTimer);
+      this.restorePositionTimer = this.win.setTimeout(() => {
+        this.restorePositionTimer = null;
+        if (!this.active || !this.libraryTabActive || this.disposed) return;
+        this.restoreViewPosition();
+        const finish = () => {
+          if (!this.active || !this.libraryTabActive || this.disposed) return;
+          this.restoreViewPosition();
+          this.positionRestorePending = false;
+        };
+        if (typeof this.win.requestAnimationFrame === "function") {
+          this.win.requestAnimationFrame(finish);
+        } else this.win.setTimeout(finish, 0);
+      }, 0);
     }
 
     async onContainerClick(event) {
@@ -425,6 +657,7 @@
       }
       await this.itemsView.selectItems(ids, false, true);
       this.syncSelection();
+      this.captureViewPosition(ids[ids.length - 1]);
     }
 
     getSelectedIDs() {
@@ -478,6 +711,8 @@
       this.disposed = true;
       this.renderRevision++;
       this.win.clearTimeout(this.renderTimer);
+      this.win.clearTimeout(this.restorePositionTimer);
+      this.win.clearTimeout(this.visibleMetricsTimer);
       try { this.itemsView?.onRefresh?.removeListener?.(this.refreshListener); } catch (_) {}
       if (this.notifierID) this.win.Zotero.Notifier.unregisterObserver(this.notifierID);
       for (const observerID of this.stylePrefObserverIDs) {
@@ -486,6 +721,9 @@
       this.stylePrefObserverIDs = [];
       if (this.pane?.itemSelected === this.itemSelectedWrapper) this.pane.itemSelected = this.originalItemSelected;
       if (this.treeNode) this.applyViewLayout(false);
+      this.doc.removeEventListener("click", this.documentClickListener);
+      this.container?.removeEventListener("scroll", this.scrollListener);
+      this.metricsSync.destroy();
       this.modelStore.clear();
       this.cardByID.clear();
       this.button?.remove();
@@ -497,4 +735,3 @@
 
   root.ZoteroCardViewController = CardViewController;
 })(typeof _globalThis !== "undefined" ? _globalThis : (typeof globalThis !== "undefined" ? globalThis : this));
-

@@ -58,4 +58,3 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "Zotero Card View ${VERSION}" \
             --notes "首个公开测试版 / First public beta.\n\n提供 Zotero 9 文献卡片视图、Zotero Style 期刊指标与评级显示，以及按日期、题名、影响因子和评级排序。"
-

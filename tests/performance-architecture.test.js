@@ -32,6 +32,7 @@ for (const file of [
   "text-utils.js",
   "rating-adapter.js",
   "metrics-adapter.js",
+  "reading-progress-adapter.js",
   "settings.js",
   "item-presenter.js",
   "model-store.js"
@@ -69,4 +70,3 @@ test("large summary views parse settings once and defer heavy detail reads", () 
   assert.equal(counters.creators, 1);
   assert.equal(counters.children, 2);
 });
-

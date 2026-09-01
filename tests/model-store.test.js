@@ -13,6 +13,9 @@ function createStore() {
     CardViewItemPresenter: {
       presentSummary: (_win, item, settings) => ({ id: item.id, item, settings }),
       presentDetails: (_win, item, summary) => ({ ...summary, detail: item.title })
+    },
+    CardViewReadingProgressAdapter: {
+      getProgress: (_win, item) => ({ signature: `progress-${item.id}` })
     }
   });
   const originalSummary = context.CardViewItemPresenter.presentSummary;
@@ -57,3 +60,9 @@ test("item and settings invalidation are scoped", () => {
   assert.equal(counters.settings, 2);
 });
 
+test("reading progress is read live instead of entering the summary cache", () => {
+  const { store } = createStore();
+  const item = { id: 7, title: "Paper" };
+  assert.equal(store.getReadingProgress(item).signature, "progress-7");
+  assert.equal(store.getReadingProgress(item).signature, "progress-7");
+});

@@ -26,6 +26,14 @@
       return model;
     }
 
+    getReadingProgress(item) {
+      return root.CardViewReadingProgressAdapter.getProgress(
+        this.win,
+        item,
+        this.settings.readingProgress
+      );
+    }
+
     invalidate(ids) {
       for (const value of ids || []) {
         const id = Number(value);
@@ -58,4 +66,3 @@
 
   root.CardViewModelStore = CardViewModelStore;
 })(typeof _globalThis !== "undefined" ? _globalThis : (typeof globalThis !== "undefined" ? globalThis : this));
-

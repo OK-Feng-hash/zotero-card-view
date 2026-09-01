@@ -26,4 +26,3 @@ test("keywords identical to tags are suppressed regardless of order", () => {
   assert.equal(utils.hasDistinctKeywords("吸附；废水处理", ["沉淀", "吸附"]), true);
   assert.equal(utils.hasDistinctKeywords("", ["沉淀", "吸附"]), false);
 });
-

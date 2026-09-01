@@ -47,4 +47,3 @@ test("update manifest matches the packaged add-on", () => {
     manifest.applications.zotero.strict_max_version
   );
 });
-

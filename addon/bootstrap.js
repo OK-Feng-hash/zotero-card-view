@@ -29,9 +29,14 @@ async function startup({ rootURI }) {
 
   for (const file of [
     "text-utils.js",
+    "preferences.js",
+    "sort-fields.js",
     "sorter.js",
     "rating-adapter.js",
     "metrics-adapter.js",
+    "style-metrics-sync.js",
+    "reading-progress-adapter.js",
+    "view-position.js",
     "settings.js",
     "item-presenter.js",
     "model-store.js",
@@ -75,5 +80,5 @@ function initDefaultPrefs() {
   branch.setBoolPref("enabled", false);
   branch.setCharPref("sortField", "date");
   branch.setCharPref("sortDirection", "desc");
+  branch.setCharPref("enabledSortFields", "date,title,impactFactor,rating");
 }
-
